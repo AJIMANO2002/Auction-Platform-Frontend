@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import { toast } from "react-toastify";
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [myAuctions, setMyAuctions] = useState([]);
   const [myBids, setMyBids] = useState([]);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -13,37 +15,42 @@ export default function Dashboard() {
       navigate("/login");
     } else {
       setUser(storedUser);
-      fetchUserData(storedUser.token); // Assuming token is stored in user object
+      fetchUserData(storedUser.token);
     }
-  }, [navigate]);
+  }, [navigate, location.state?.refresh]); 
 
   const fetchUserData = async (token) => {
     try {
-      const auctionsRes = await fetch("http://localhost:8000/api/auctions/my-auctions", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const auctionsRes = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/auctions/my-auctions`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       if (!auctionsRes.ok) throw new Error("Failed to fetch auctions");
       const auctionsData = await auctionsRes.json();
       setMyAuctions(Array.isArray(auctionsData) ? auctionsData : []);
-  
-      const bidsRes = await fetch("http://localhost:8000/api/bids/user/history", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+
+      const bidsRes = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/bids/user/history`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       if (!bidsRes.ok) throw new Error("Failed to fetch bids");
       const bidsData = await bidsRes.json();
       setMyBids(Array.isArray(bidsData) ? bidsData : []);
     } catch (error) {
-      console.error("Dashboard fetch error:", error.message);
-      setMyAuctions([]); // fallback to empty array
+      toast.error(`Dashboard fetch error: ${error.message}`);
+      setMyAuctions([]);
       setMyBids([]);
     }
   };
-  
 
   return (
     <div className="min-h-screen p-6 bg-gray-100">
       <h1 className="text-3xl font-bold text-gray-800 mb-4">
-        Welcome, {user?.name || "User"} 👋
+        Welcome, {user?.name || "User"} 
       </h1>
 
       <div className="bg-white shadow-md rounded-lg p-6 mb-6">
@@ -51,7 +58,7 @@ export default function Dashboard() {
           Email: <span className="font-medium">{user?.email}</span>
         </p>
         <p className="text-gray-600">
-          Account Type: <span className="font-medium">User</span>
+          Account Type: <span className="font-medium">{user?.role || "User"}</span>
         </p>
       </div>
 
@@ -72,7 +79,10 @@ export default function Dashboard() {
           {myAuctions.map((auction) => (
             <div key={auction._id} className="bg-white p-4 rounded shadow">
               <img
-                src={auction.image}
+                src={
+                  auction.image ||
+                  "https://via.placeholder.com/300x200?text=No+Image"
+                }
                 alt={auction.title}
                 className="w-full h-32 object-cover rounded mb-2"
               />

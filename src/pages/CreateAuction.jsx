@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 export default function CreateAuction() {
   const [formData, setFormData] = useState({
@@ -11,9 +12,16 @@ export default function CreateAuction() {
     endTime: "",
   });
 
-  const [message, setMessage] = useState("");
   const navigate = useNavigate();
-  const token = localStorage.getItem("token");
+  const [token, setToken] = useState("");
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) {
+      const parsedUser = JSON.parse(savedUser);
+      setToken(parsedUser.token);
+    }
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -27,36 +35,48 @@ export default function CreateAuction() {
     e.preventDefault();
 
     if (!token) {
-      setMessage("You must be logged in to create an auction.");
+      toast.error("You must be logged in to create an auction.");
       return;
     }
 
     try {
-      const res = await fetch("http://localhost:8000/api/auctions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: token,
-        },
-        body: JSON.stringify(formData),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/auctions`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(formData),
+        }
+      );
 
-      const data = await res.json();
-      if (res.ok) {
-        setMessage("Auction created successfully!");
-        setTimeout(() => navigate("/auctions"), 1000);
-      } else {
-        setMessage(data.message || "Error creating auction");
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.message || "Auction creation failed");
+        return;
       }
-    } catch (err) {
-      setMessage("Server error");
+
+      toast.success("Auction created successfully!");
+      navigate("/auctions");
+    } catch (error) {
+      console.error("Create auction error:", error);
+      toast.error("Something went wrong.");
     }
   };
 
   return (
-    <div className="p-6 max-w-2xl mx-auto bg-gray-100 min-h-screen">
-      <h2 className="text-3xl font-bold mb-6">Create New Auction</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="flex justify-center items-center min-h-screen bg-gray-100">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white p-6 rounded-lg shadow-md w-full max-w-lg"
+      >
+        <h2 className="text-2xl font-bold mb-6 text-center text-blue-600">
+          Create Auction
+        </h2>
+
         <input
           type="text"
           name="title"
@@ -64,24 +84,27 @@ export default function CreateAuction() {
           value={formData.title}
           onChange={handleChange}
           required
-          className="w-full p-2 border rounded"
+          className="w-full mb-4 p-3 border rounded"
         />
+
         <textarea
           name="description"
           placeholder="Description"
           value={formData.description}
           onChange={handleChange}
           required
-          className="w-full p-2 border rounded"
+          className="w-full mb-4 p-3 border rounded"
         />
+
         <input
           type="text"
           name="image"
           placeholder="Image URL"
           value={formData.image}
           onChange={handleChange}
-          className="w-full p-2 border rounded"
+          className="w-full mb-4 p-3 border rounded"
         />
+
         <input
           type="number"
           name="startingprice"
@@ -89,33 +112,36 @@ export default function CreateAuction() {
           value={formData.startingprice}
           onChange={handleChange}
           required
-          className="w-full p-2 border rounded"
+          className="w-full mb-4 p-3 border rounded"
         />
+
         <select
           name="auctionType"
           value={formData.auctionType}
           onChange={handleChange}
-          className="w-full p-2 border rounded"
+          className="w-full mb-4 p-3 border rounded"
         >
           <option value="traditional">Traditional</option>
           <option value="sealed">Sealed</option>
           <option value="reverse">Reverse</option>
         </select>
+
         <input
           type="datetime-local"
           name="endTime"
           value={formData.endTime}
           onChange={handleChange}
           required
-          className="w-full p-2 border rounded"
+          className="w-full mb-4 p-3 border rounded"
         />
 
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+        <button
+          type="submit"
+          className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700"
+        >
           Create Auction
         </button>
       </form>
-
-      {message && <p className="mt-4 text-red-600">{message}</p>}
     </div>
   );
 }

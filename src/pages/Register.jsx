@@ -1,8 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 export default function Register() {
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    role: "user", 
+  });
+
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -12,22 +19,25 @@ export default function Register() {
   const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch("http://localhost:8000/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/auth/register`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(form),
+        }
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
-        alert(data.message || "Registration failed");
+        toast.error(data.message || "Registration failed");
       } else {
-        alert("Registered! Please log in.");
+        toast.success("Registered! Please log in.");
         navigate("/login");
       }
     } catch (err) {
-      alert("Something went wrong");
+      toast.error("Something went wrong");
     }
   };
 
@@ -67,6 +77,17 @@ export default function Register() {
           onChange={handleChange}
           required
         />
+
+        <select
+          name="role"
+          className="w-full mb-4 p-3 border rounded-lg"
+          value={form.role}
+          onChange={handleChange}
+        >
+          <option value="user">User</option>
+          <option value="seller">Seller</option>
+        </select>
+
         <button
           type="submit"
           className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700"
@@ -78,13 +99,11 @@ export default function Register() {
           Already have an account?{" "}
           <span
             className="text-blue-600 cursor-pointer hover:underline"
-            onClick={() => navigate("/Login")}
+            onClick={() => navigate("/login")}
           >
             Login
           </span>
         </p>
-
-
       </form>
     </div>
   );

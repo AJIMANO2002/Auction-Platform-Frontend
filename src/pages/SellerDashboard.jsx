@@ -1,103 +1,128 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { toast } from "react-toastify";
 
 export default function SellerDashboard() {
-    const [auctions, setAuctions] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [myAuctions, setMyAuctions] = useState([]);
+  const navigate = useNavigate();
 
-    const token = JSON.parse(localStorage.getItem("user"))?.token;
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (!storedUser || storedUser.role !== "seller") {
+      toast.error("Unauthorized access");
+      navigate("/login");
+    } else {
+      setUser(storedUser);
+      fetchSellerAuctions(storedUser.token);
+    }
+  }, [navigate]);
 
-    useEffect(() => {
-        const fetchMyAuctions = async () => {
-            if (!token) {
-                console.error("No token found. Redirecting to login...");
-                navigate("/login");
-                return;
-            }
-
-            try {
-                const res = await fetch("http://localhost:8000/api/auctions/my-auctions", {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        "Content-Type": "application/json"
-                    }
-                });
-
-                const data = await res.json();
-
-                if (!res.ok) {
-                    console.error("Error:", data.message);
-                    setAuctions([]);
-                } else {
-                    setAuctions(data); // Ensure this is always an array
-                }
-            } catch (err) {
-                console.error("Failed to load seller auctions:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchMyAuctions();
-    }, [token]);
-    console.log("Token:", token);
-
-    const handleDelete = async (id) => {
-        if (!window.confirm("Are you sure to delete this auction?")) return;
-
-        try {
-            const res = await fetch(`http://localhost:8000/api/auctions/${id}`, {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            const data = await res.json();
-            alert(data.message);
-            setAuctions(auctions.filter((a) => a._id !== id));
-        } catch (err) {
-            console.error("Delete failed:", err);
+  const fetchSellerAuctions = async (token) => {
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/auctions/my-auctions`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
         }
-    };
+      );
+      if (!res.ok) throw new Error("Failed to fetch auctions");
+      const data = await res.json();
+      setMyAuctions(Array.isArray(data) ? data : []);
+    } catch (err) {
+      toast.error(`Error loading auctions: ${err.message}`);
+    }
+  };
 
-    return (
-        <div className="p-6 bg-gray-100 min-h-screen">
-            <h2 className="text-3xl font-bold mb-6 text-gray-800">My Auctions</h2>
+  const deleteAuction = async (auctionId) => {
+    const confirm = window.confirm("Are you sure you want to delete this auction?");
+    if (!confirm) return;
 
-            {loading ? (
-                <p>Loading...</p>
-            ) : !Array.isArray(auctions) || auctions.length === 0 ? (
-                <p className="text-gray-600">You have no auctions.</p>
-            ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                    {auctions.map((auction) => (
-                        <div key={auction._id} className="bg-white p-4 rounded shadow">
-                            <img
-                                src={auction.image || "https://via.placeholder.com/300x200?text=No+Image"}
-                                alt={auction.title}
-                                className="w-full h-40 object-cover mb-3 rounded"
-                            />
-                            <h3 className="text-xl font-semibold">{auction.title}</h3>
-                            <p className="text-gray-500">{auction.description}</p>
-                            <div className="mt-2 flex justify-between">
-                                <Link
-                                    to={`/edit-auction/${auction._id}`}
-                                    className="text-blue-500 hover:underline"
-                                >
-                                    Edit
-                                </Link>
-                                <button
-                                    onClick={() => handleDelete(auction._id)}
-                                    className="text-red-500 hover:underline"
-                                >
-                                    Delete
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/auctions/${auctionId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${user.token}`,
+          },
+        }
+      );
+      if (!res.ok) throw new Error("Delete failed");
+      toast.success("Auction deleted");
+      setMyAuctions(myAuctions.filter((a) => a._id !== auctionId));
+    } catch (err) {
+      toast.error(`Delete error: ${err.message}`);
+    }
+  };
+
+  return (
+    <div className="min-h-screen p-6 bg-gray-100">
+      <h1 className="text-3xl font-bold text-gray-800 mb-4">
+        Welcome, {user?.name} 🛍️
+      </h1>
+
+      <div className="bg-white shadow-md rounded-lg p-6 mb-6">
+        <p className="text-gray-600 mb-2">
+          Email: <span className="font-medium">{user?.email}</span>
+        </p>
+        <p className="text-gray-600">
+          Account Type: <span className="font-medium">Seller</span>
+        </p>
+      </div>
+
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold text-gray-800">Your Auctions</h2>
+        <Link
+          to="/create-auction"
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+        >
+          + Create Auction
+        </Link>
+      </div>
+
+      {myAuctions.length === 0 ? (
+        <p className="text-gray-500 italic">No auctions found.</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          {myAuctions.map((auction) => (
+            <div key={auction._id} className="bg-white p-4 rounded shadow">
+              <img
+                src={auction.image || "https://via.placeholder.com/300x200"}
+                alt={auction.title}
+                className="w-full h-32 object-cover rounded mb-2"
+              />
+              <h3 className="text-lg font-semibold">{auction.title}</h3>
+              <p className="text-sm text-gray-600 mb-1">
+                ₹{auction.startingprice}
+              </p>
+              <p className="text-xs text-gray-500 mb-2">Status: {auction.status}</p>
+
+              <div className="flex justify-between mt-2">
+                <Link
+                  to={`/auction/edit/${auction._id}`}
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  Edit
+                </Link>
+                <button
+                  onClick={() => deleteAuction(auction._id)}
+                  className="text-sm text-red-600 hover:underline"
+                >
+                  Delete
+                </button>
+              </div>
+
+              <Link
+                to={`/auction/${auction._id}`}
+                className="block text-blue-500 mt-2 text-sm hover:underline"
+              >
+                View Details
+              </Link>
+            </div>
+          ))}
         </div>
-
-    );
+      )}
+    </div>
+  );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { toast } from "react-toastify";
 
 export default function AuctionDetail() {
   const { id } = useParams();
@@ -9,11 +10,10 @@ export default function AuctionDetail() {
   const [bidsLoading, setBidsLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState("");
 
-  // Fetch auction details
   useEffect(() => {
     const fetchAuction = async () => {
       try {
-        const res = await fetch(`http://localhost:8000/api/auctions/${id}`);
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auctions/${id}`);
         const data = await res.json();
         setAuction(data);
       } catch (error) {
@@ -25,7 +25,7 @@ export default function AuctionDetail() {
 
     const fetchBids = async () => {
       try {
-        const res = await fetch(`http://localhost:8000/api/bids/${id}`);
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/bids/${id}`);
         const data = await res.json();
         setBids(data);
       } catch (err) {
@@ -39,7 +39,6 @@ export default function AuctionDetail() {
     fetchBids();
   }, [id]);
 
-  // Countdown timer
   useEffect(() => {
     if (!auction?.endTime) return;
 
@@ -69,12 +68,12 @@ export default function AuctionDetail() {
   if (!auction) return <p className="p-6 text-red-500">Auction not found.</p>;
 
   return (
-    <div className="p-6 min-h-screen  bg-gray-50">
+    <div className="p-6 min-h-screen bg-gray-50">
       <div className="max-w-3xl mx-auto justify-items-center bg-white shadow-md rounded-lg p-6">
         <img
           src={auction.image || "https://via.placeholder.com/300"}
           alt={auction.title}
-          className="w-92  h-full object-cover rounded-lg mb-4"
+          className="w-92 h-full object-cover rounded-lg mb-4"
         />
         <h2 className="text-3xl font-bold mb-2 text-blue-700">{auction.title}</h2>
         <p className="text-gray-700 mb-3">{auction.description}</p>
@@ -82,7 +81,6 @@ export default function AuctionDetail() {
         <p className="text-gray-800 font-semibold">Current Bid: ₹{auction.currentBid}</p>
         <p className="text-sm text-red-600 mt-2">Time Left: {timeLeft}</p>
 
-        {/* Bidding History */}
         <div className="mt-8">
           <h3 className="text-xl font-semibold mb-3">Bidding History</h3>
           {bidsLoading ? (
@@ -101,7 +99,6 @@ export default function AuctionDetail() {
           )}
         </div>
 
-        {/* Place Bid Form */}
         <div className="mt-10">
           <h2 className="text-xl font-semibold mb-3">Place a Bid</h2>
 
@@ -114,14 +111,21 @@ export default function AuctionDetail() {
                 const amount = parseFloat(e.target.amount.value);
 
                 if (!amount || amount <= auction.currentBid) {
-                  alert("Bid must be higher than the current bid.");
+                  toast.warn("Bid must be higher than the current bid.");
+                  return;
+                }
+
+                const user = JSON.parse(localStorage.getItem("user"));
+                const token = user?.token;
+
+                if (!token) {
+                  toast.error("Unauthorized. Please login again.");
                   return;
                 }
 
                 try {
-                  const token = localStorage.getItem("token");
                   const res = await fetch(
-                    `http://localhost:8000/api/bids/${auction._id}`,
+                    `${import.meta.env.VITE_BACKEND_URL}/api/bids/${auction._id}`,
                     {
                       method: "POST",
                       headers: {
@@ -135,13 +139,12 @@ export default function AuctionDetail() {
                   const data = await res.json();
                   if (!res.ok) throw new Error(data.message || "Bid failed");
 
-                  alert("Bid placed successfully!");
-                  // Update UI
+                  toast.success("Bid placed successfully!");
                   setAuction((prev) => ({ ...prev, currentBid: amount }));
                   setBids((prev) => [...prev, data.bid]);
                   e.target.reset();
                 } catch (error) {
-                  alert(error.message);
+                  toast.error(error.message || "Something went wrong!");
                 }
               }}
               className="bg-gray-50 p-4 rounded-md shadow"

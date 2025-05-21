@@ -8,7 +8,7 @@ export default function Auctions() {
   useEffect(() => {
     const fetchAuctions = async () => {
       try {
-        const res = await fetch("http://localhost:8000/api/auctions");
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auctions`);
         const data = await res.json();
         setAuctions(data);
       } catch (err) {

@@ -17,14 +17,14 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-white shadow px-6 py-3 flex justify-between items-center">
+    <nav className="bg-white shadow px-6 py-3 flex flex-wrap justify-between items-center">
       <Link to="/auctions" className="text-xl font-bold text-blue-600">
         AuctionHub
       </Link>
 
       <div className="flex items-center space-x-4">
         <Link to="/auctions" className="text-gray-700 hover:text-blue-600">
-          Live Auctions
+          Auctions
         </Link>
 
         {user ? (
@@ -36,11 +36,7 @@ export default function Navbar() {
               {user.role === "seller" ? "Dashboard" : "Dashboard"}
             </Link>
 
-            {user.role === "seller" && (
-              <Link to="/create-auction" className="text-gray-700 hover:text-blue-600">
-                Create Auction
-              </Link>
-            )}
+           
 
             <button
               onClick={handleLogout}

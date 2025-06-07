@@ -7,7 +7,6 @@ import {
 } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
-import Home from "../pages/Home";
 import Auctions from "../pages/Auctions";
 import AuctionDetail from "../pages/AuctionDetail";
 import CreateAuction from "../pages/CreateAuction";
@@ -54,16 +53,6 @@ function AppContent() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      <Route
-        path="/home"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <Home />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
       <Route
         path="/auctions"
         element={
@@ -117,7 +106,7 @@ function AppContent() {
       />
 
 
-     
+
 
       <Route
         path="/dashboard"

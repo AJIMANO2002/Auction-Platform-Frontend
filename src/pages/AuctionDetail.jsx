@@ -2,6 +2,17 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
+
+function getAuctionStatus(auction) {
+  const now = new Date();
+  const start = new Date(auction.startTime || auction.startDate);
+  const end = new Date(auction.endTime || auction.endDate);
+
+  if (now < start) return "Upcoming";
+  if (now >= start && now < end) return "Live";
+  return "Ended";
+}
+
 export default function AuctionDetail() {
   const { id } = useParams();
   const [auction, setAuction] = useState(null);
@@ -102,8 +113,8 @@ export default function AuctionDetail() {
         <div className="mt-10">
           <h2 className="text-xl font-semibold mb-3">Place a Bid</h2>
 
-          {auction.status !== "active" ? (
-            <p className="text-red-600">This auction is no longer active.</p>
+          {getAuctionStatus(auction) !== "Live" ? (
+            <p className="text-red-600">This auction is not live currently.</p>
           ) : (
             <form
               onSubmit={async (e) => {

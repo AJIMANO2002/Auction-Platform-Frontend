@@ -9,8 +9,10 @@ export default function CreateAuction() {
     image: "",
     startingprice: "",
     auctionType: "traditional",
+    startTime: "", 
     endTime: "",
   });
+
 
   const navigate = useNavigate();
   const [token, setToken] = useState("");
@@ -24,6 +26,7 @@ export default function CreateAuction() {
   }, []);
 
   const handleChange = (e) => {
+
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -32,12 +35,25 @@ export default function CreateAuction() {
   };
 
   const handleSubmit = async (e) => {
+    console.log("Submitting auction with data:", formData);
+    
     e.preventDefault();
 
     if (!token) {
       toast.error("You must be logged in to create an auction.");
       return;
     }
+
+    if (!formData.startTime || !formData.endTime) {
+      toast.error("Please select both start and end times.");
+      return;
+    }
+
+    const body = {
+      ...formData,
+      startTime: new Date(formData.startTime).toISOString(),
+      endTime: new Date(formData.endTime).toISOString(),
+    };
 
     try {
       const response = await fetch(
@@ -48,7 +64,7 @@ export default function CreateAuction() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(body),
         }
       );
 
@@ -125,6 +141,18 @@ export default function CreateAuction() {
           <option value="sealed">Sealed</option>
           <option value="reverse">Reverse</option>
         </select>
+
+        <input
+          type="datetime-local"
+          name="startTime"
+          value={formData.startTime}
+          onChange={handleChange}
+          required
+          className="w-full mb-4 p-3 border rounded"
+        />
+
+        
+        
 
         <input
           type="datetime-local"

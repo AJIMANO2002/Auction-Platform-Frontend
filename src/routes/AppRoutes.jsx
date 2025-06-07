@@ -11,7 +11,7 @@ import Home from "../pages/Home";
 import Auctions from "../pages/Auctions";
 import AuctionDetail from "../pages/AuctionDetail";
 import CreateAuction from "../pages/CreateAuction";
-import EditAuction from "../pages/EditAuction"; 
+import EditAuction from "../pages/EditAuction";
 import SellerDashboard from "../pages/SellerDashboard";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
@@ -115,6 +115,9 @@ function AppContent() {
           </ProtectedRoute>
         }
       />
+
+
+     
 
       <Route
         path="/dashboard"

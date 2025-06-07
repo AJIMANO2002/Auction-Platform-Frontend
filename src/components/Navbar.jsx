@@ -1,67 +1,66 @@
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 export default function Navbar() {
-  const navigate = useNavigate();
-  const location = useLocation();
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      setUser(parsed.user); 
-    } else {
-      setUser(null);
-    }
-  }, [location]);
-
-  const hideNavbar = location.pathname === "/" || location.pathname === "/register";
-  if (hideNavbar) return null;
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    setUser(storedUser);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    navigate("/");
+    setUser(null);
+    navigate("/login");
   };
 
   return (
-    <nav className="bg-blue-600 text-white px-6 py-3 flex justify-between flex-wrap items-center shadow">
-      <div className="text-lg font-bold cursor-pointer" onClick={() => navigate("/home")}>
+    <nav className="bg-white shadow px-6 py-3 flex justify-between items-center">
+      <Link to="/auctions" className="text-xl font-bold text-blue-600">
         AuctionHub
-      </div>
+      </Link>
 
-      <ul className="flex gap-4 items-center">
-        <li>
-          <Link to="/home" className="hover:underline">Home</Link>
-        </li>
-        <li>
-          <Link to="/auctions" className="hover:underline">Auctions</Link>
-        </li>
+      <div className="flex items-center space-x-4">
+        <Link to="/auctions" className="text-gray-700 hover:text-blue-600">
+          Live Auctions
+        </Link>
 
-        {user?.role === "user" && (
-          <li>
-            <Link to="/dashboard" className="hover:underline">Dashboard</Link>
-          </li>
-        )}
-
-        {user?.role === "seller" && (
+        {user ? (
           <>
-            <li>
-              <Link to="/seller-dashboard" className="hover:underline">Seller Dashboard</Link>
-            </li>
-            <li>
-              <Link to="/create-auction" className="hover:underline">Create Auction</Link>
-            </li>
+            <Link
+              to={user.role === "seller" ? "/seller-dashboard" : "/dashboard"}
+              className="text-gray-700 hover:text-blue-600"
+            >
+              {user.role === "seller" ? "Dashboard" : "Dashboard"}
+            </Link>
+
+            {user.role === "seller" && (
+              <Link to="/create-auction" className="text-gray-700 hover:text-blue-600">
+                Create Auction
+              </Link>
+            )}
+
+            <button
+              onClick={handleLogout}
+              className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+            >
+              Logout
+            </button>
+          </>
+        ) : (
+          <>
+            <Link to="/login" className="text-gray-700 hover:text-blue-600">
+              Login
+            </Link>
+            <Link to="/register" className="text-gray-700 hover:text-blue-600">
+              Register
+            </Link>
           </>
         )}
 
-        <li>
-          <button onClick={handleLogout} className="bg-white text-blue-600 px-3 py-1 rounded hover:bg-gray-100">
-            Logout
-          </button>
-        </li>
-      </ul>
+      </div>
     </nav>
   );
 }

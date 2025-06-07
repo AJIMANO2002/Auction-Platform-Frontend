@@ -20,8 +20,7 @@ export default function SellerDashboard() {
 
   const fetchSellerAuctions = async (token) => {
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/api/auctions/my-auctions`,
+      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auctions/my-auctions`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

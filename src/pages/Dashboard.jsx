@@ -1,142 +1,81 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
-export default function Dashboard() {
-  const [user, setUser] = useState(null);
-  const [myAuctions, setMyAuctions] = useState([]);
-  const [myBids, setMyBids] = useState([]);
+const Dashboard = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const [myBids, setMyBids] = useState([]);
+  const [username, setUsername] = useState("");
 
   useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (!storedUser) {
+    const storedUser = localStorage.getItem("user");
+    const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+    const token = parsedUser?.token;
+
+    if (!token) {
+      toast.error("Please log in to view your dashboard.");
       navigate("/login");
-    } else {
-      setUser(storedUser);
-      fetchUserData(storedUser.token);
+      return;
     }
-  }, [navigate, location.state?.refresh]); 
 
-  const fetchUserData = async (token) => {
-    try {
-      const auctionsRes = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/api/auctions/my-auctions`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (!auctionsRes.ok) throw new Error("Failed to fetch auctions");
-      const auctionsData = await auctionsRes.json();
-      setMyAuctions(Array.isArray(auctionsData) ? auctionsData : []);
+    setUsername(parsedUser.username || parsedUser.name || "User");
 
-      const bidsRes = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/api/bids/user/history`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (!bidsRes.ok) throw new Error("Failed to fetch bids");
-      const bidsData = await bidsRes.json();
-      setMyBids(Array.isArray(bidsData) ? bidsData : []);
-    } catch (error) {
-      toast.error(`Dashboard fetch error: ${error.message}`);
-      setMyAuctions([]);
-      setMyBids([]);
-    }
-  };
+    const fetchBids = async () => {
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_BACKEND_URL}/api/bids/user/history`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!res.ok) throw new Error("Failed to fetch bids");
+
+        const data = await res.json();
+        setMyBids(Array.isArray(data) ? data : []);
+      } catch (error) {
+        toast.error(`Error: ${error.message}`);
+        localStorage.removeItem("user");
+        navigate("/login");
+      }
+    };
+
+    fetchBids();
+  }, [navigate]);
 
   return (
     <div className="min-h-screen p-6 bg-gray-100">
-      <h1 className="text-3xl font-bold text-gray-800 mb-4">
-        Welcome, {user?.name || "User"} 
+      <h1 className="text-3xl font-bold text-blue-600 mb-12">
+        Welcome, {username} 🛍️ 
       </h1>
 
-      <div className="bg-white shadow-md rounded-lg p-6 mb-6">
-        <p className="text-gray-600 mb-2">
-          Email: <span className="font-medium">{user?.email}</span>
-        </p>
-        <p className="text-gray-600">
-          Account Type: <span className="font-medium">{user?.role || "User"}</span>
-        </p>
-      </div>
 
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-gray-800">Your Auctions</h2>
-        <Link
-          to="/create-auction"
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-        >
-          + Create Auction
-        </Link>
-      </div>
+      <h2 className="text-xl font-semibold mb-3">🎯 Your Bids</h2>
 
-      {myAuctions.length === 0 ? (
-        <p className="text-gray-500 mb-8">No auctions created yet.</p>
+      {myBids.length === 0 ? (
+        <p className="text-gray-600">You haven't placed any bids yet.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-8">
-          {myAuctions.map((auction) => (
-            <div key={auction._id} className="bg-white p-4 rounded shadow">
-              <img
-                src={
-                  auction.image ||
-                  "https://via.placeholder.com/300x200?text=No+Image"
-                }
-                alt={auction.title}
-                className="w-full h-32 object-cover rounded mb-2"
-              />
-              <h3 className="text-lg font-semibold">{auction.title}</h3>
-              <p className="text-sm text-gray-600 mb-1">
-                ₹{auction.startingprice}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {myBids.map((bid) => (
+            <div
+              key={bid._id}
+              className="border rounded-lg shadow-sm p-4 hover:shadow-md transition"
+            >
+              <h3 className="text-lg font-semibold text-gray-800">
+                {bid.auction?.title || "Auction Removed"}
+              </h3>
+              <p className="text-gray-600 mt-1"> Bid Amount: ₹{bid.amount}</p>
+              <p className="text-gray-500 text-sm mt-1">
+                Date: {new Date(bid.createdAt).toLocaleDateString()}
               </p>
-              <p className="text-xs text-gray-500 mb-2">
-                Status: {auction.status}
-              </p>
-              <Link
-                to={`/auction/${auction._id}`}
-                className="text-blue-600 text-sm hover:underline"
-              >
-                View Details
-              </Link>
             </div>
           ))}
         </div>
       )}
-
-      <div>
-        <h2 className="text-xl font-semibold text-gray-800 mb-3">
-          Your Bidding Activity
-        </h2>
-        {myBids.length === 0 ? (
-          <p className="text-gray-500 italic">No bidding activity yet.</p>
-        ) : (
-          <ul className="space-y-3">
-            {myBids.map((bid) => (
-              <li
-                key={bid._id}
-                className="bg-white p-3 rounded shadow flex justify-between items-center"
-              >
-                <div>
-                  <p className="text-gray-800">
-                    Bid: ₹{bid.amount} on{" "}
-                    <span className="font-semibold">{bid.auction.title}</span>
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {new Date(bid.createdAt).toLocaleString()}
-                  </p>
-                </div>
-                <Link
-                  to={`/auction/${bid.auction._id}`}
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  View
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
     </div>
   );
-}
+};
+
+export default Dashboard;
